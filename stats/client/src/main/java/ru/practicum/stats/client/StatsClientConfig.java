@@ -9,7 +9,7 @@ import org.springframework.web.client.RestTemplate;
 @Configuration
 public class StatsClientConfig {
 
-    @Value("${stats-server.url}")
+    @Value("${stats-server.url}") // указать в properties
     private String statsServerUri;
 
     @Bean

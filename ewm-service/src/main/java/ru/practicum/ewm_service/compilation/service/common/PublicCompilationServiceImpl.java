@@ -3,7 +3,6 @@ package ru.practicum.ewm_service.compilation.service.common;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.ewm_service.compilation.Compilation;
@@ -27,7 +26,6 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-@Transactional(readOnly = true)
 public class PublicCompilationServiceImpl implements PublicCompilationService {
 
     private final CompilationRepository compilationRepository;
@@ -39,13 +37,11 @@ public class PublicCompilationServiceImpl implements PublicCompilationService {
 
     @Override
     public List<CompilationDto> findByFilters(Boolean pinned, int from, int size) {
-        Pageable pageable = PageRequest.of(from / size, size);
         List<Compilation> compilations;
-
         if (pinned == null) {
-            compilations = compilationRepository.findAllWithEvents(pageable).toList();
+            compilations = compilationRepository.findAll(PageRequest.of(from / size, size)).toList();
         } else {
-            compilations = compilationRepository.findAllByPinnedWithEvents(pinned, pageable).toList();
+            compilations = compilationRepository.findAllByPinned(pinned, PageRequest.of(from / size, size)).toList();
         }
 
         List<Event> allEvents = compilations.stream()
@@ -73,12 +69,8 @@ public class PublicCompilationServiceImpl implements PublicCompilationService {
                 .min(LocalDateTime::compareTo)
                 .orElse(LocalDateTime.now());
 
-        log.info("1 = {}, 2 = {}, 3 = {}, 4 = {}",
-                start.minusDays(10),
-                LocalDateTime.now().plusDays(10),
-                eventIds.stream().map(id -> "/events/" + id).toList(),
-                true);
 
+        log.info("1 = {}, 2 = {}, 3 = {}, 4 = {}", start.minusDays(10), LocalDateTime.now().plusDays(10), eventIds.stream().map(id -> "/events/" + id).toList(), true);
         Map<Long, Long> viewsMap = statsClient.getViews(
                 start.minusDays(10),
                 LocalDateTime.now().plusDays(10),
@@ -103,10 +95,10 @@ public class PublicCompilationServiceImpl implements PublicCompilationService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public CompilationDto findById(long compId) {
-        Compilation compilation = compilationRepository.findByIdWithEvents(compId)
+        Compilation compilation = compilationRepository.findById(compId)
                 .orElseThrow(() -> new NotFoundException("Compilation with id = " + compId + " not found"));
-
         List<Event> events = new ArrayList<>(compilation.getEvents());
         return compilationDtoEnhancer.getEnhancedCompilationDto(compilation, events);
     }
