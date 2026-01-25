@@ -15,8 +15,8 @@ import ru.practicum.ewm_service.event.model.Event;
 import ru.practicum.ewm_service.exception.ConflictException;
 import ru.practicum.ewm_service.exception.NotFoundException;
 
+import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
 @Service
