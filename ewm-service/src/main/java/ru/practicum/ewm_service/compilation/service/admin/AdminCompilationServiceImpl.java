@@ -12,6 +12,7 @@ import ru.practicum.ewm_service.compilation.dto.NewCompilationDto;
 import ru.practicum.ewm_service.compilation.dto.UpdateCompilationRequest;
 import ru.practicum.ewm_service.event.dal.EventRepository;
 import ru.practicum.ewm_service.event.model.Event;
+import ru.practicum.ewm_service.exception.ConflictException;
 import ru.practicum.ewm_service.exception.NotFoundException;
 
 import java.util.ArrayList;
@@ -20,6 +21,7 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
+@Transactional
 public class AdminCompilationServiceImpl implements AdminCompilationService {
 
     private final CompilationRepository compilationRepository;
@@ -42,13 +44,18 @@ public class AdminCompilationServiceImpl implements AdminCompilationService {
 
     @Override
     public void deleteCompilation(long compilationId) {
-        if (!compilationRepository.existsById(compilationId))
-            throw new NotFoundException("Compilation with id = " + compilationId + " not found");
+        Compilation compilation = compilationRepository.findById(compilationId)
+                .orElseThrow(() -> new NotFoundException("Compilation with id = " + compilationId + " not found"));
+
+        if (!compilation.getEvents().isEmpty()) {
+            throw new ConflictException("Cannot delete compilation with id=" + compilationId +
+                    " because it still contains events.");
+        }
+
         compilationRepository.deleteById(compilationId);
     }
 
     @Override
-    @Transactional
     public CompilationDto updateCompilation(UpdateCompilationRequest request, long compId) {
         Compilation compilation = compilationRepository.findById(compId)
                 .orElseThrow(() -> new NotFoundException("Compilation with id = " + compId + " not found"));

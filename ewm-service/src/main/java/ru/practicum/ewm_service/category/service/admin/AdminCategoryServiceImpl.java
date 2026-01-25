@@ -2,6 +2,7 @@ package ru.practicum.ewm_service.category.service.admin;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.ewm_service.category.Category;
 import ru.practicum.ewm_service.category.CategoryMapper;
 import ru.practicum.ewm_service.category.CategoryRepository;
@@ -11,6 +12,7 @@ import ru.practicum.ewm_service.exception.NotFoundException;
 
 @RequiredArgsConstructor
 @Service
+@Transactional
 public class AdminCategoryServiceImpl implements AdminCategoryService {
     private final CategoryRepository repository;
     private final CategoryMapper mapper;
