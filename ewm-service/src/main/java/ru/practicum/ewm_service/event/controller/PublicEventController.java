@@ -1,9 +1,6 @@
 package ru.practicum.ewm_service.event.controller;
 
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.Max;
-import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -32,23 +29,25 @@ public class PublicEventController {
             @RequestParam(required = false) List<Long> categories,
             @RequestParam(required = false) Boolean paid,
             @RequestParam(required = false)
-            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+            @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
             LocalDateTime rangeStart,
             @RequestParam(required = false)
-            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+            @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
             LocalDateTime rangeEnd,
             @RequestParam(required = false, defaultValue = "false") boolean onlyAvailable,
             @RequestParam(required = false) EventSortType sort,
-            @RequestParam(defaultValue = "0")
-            @Min(value = 0, message = "Parameter 'from' must be >= 0")
-            int from,
-            @RequestParam(defaultValue = "10")
-            @Min(value = 1, message = "Parameter 'size' must be >= 1")
-            @Max(value = 1000, message = "Parameter 'size' must be <= 1000")
-            int size,
+            @RequestParam(defaultValue = "0") int from,
+            @RequestParam(defaultValue = "10") int size,
             HttpServletRequest request
     ) {
-        if (rangeEnd != null && rangeStart != null && rangeEnd.isBefore(rangeStart)) {
+        if (from < 0) {
+            throw new ValidationException("Parameter 'from' must be >= 0");
+        }
+        if (size < 1 || size > 1000) {
+            throw new ValidationException("Parameter 'size' must be between 1 and 1000");
+        }
+
+        if (rangeStart != null && rangeEnd != null && rangeEnd.isBefore(rangeStart)) {
             throw new ValidationException("Field: rangeEnd. Error: must not be before rangeStart.");
         }
 
@@ -63,11 +62,13 @@ public class PublicEventController {
 
     @GetMapping("/{id}")
     public EventFullDto getEventById(
-            @PathVariable("id")
-            @Positive(message = "Event ID must be positive")
-            long eventId,
+            @PathVariable("id") long eventId,
             HttpServletRequest request
     ) {
+        if (eventId <= 0) {
+            throw new ValidationException("Event ID must be positive");
+        }
+
         String clientIp = getClientIpAddress(request);
         log.info("Public запрос от {} на получение события с id = {}", clientIp, eventId);
         return service.getEventById(eventId, clientIp);
