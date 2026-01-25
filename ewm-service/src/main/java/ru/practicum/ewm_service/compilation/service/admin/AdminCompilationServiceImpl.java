@@ -12,14 +12,16 @@ import ru.practicum.ewm_service.compilation.dto.NewCompilationDto;
 import ru.practicum.ewm_service.compilation.dto.UpdateCompilationRequest;
 import ru.practicum.ewm_service.event.dal.EventRepository;
 import ru.practicum.ewm_service.event.model.Event;
+import ru.practicum.ewm_service.exception.ConflictException;
 import ru.practicum.ewm_service.exception.NotFoundException;
 
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
+@Transactional
 public class AdminCompilationServiceImpl implements AdminCompilationService {
 
     private final CompilationRepository compilationRepository;
@@ -28,39 +30,52 @@ public class AdminCompilationServiceImpl implements AdminCompilationService {
     private final CompilationDtoEnhancer compilationDtoEnhancer;
 
     @Override
+    @Transactional
     public CompilationDto addNewCompilation(NewCompilationDto compilationDto) {
-        List<Event> events;
-        if (compilationDto.events() == null) {
-            events = List.of();
-        } else {
-            events = eventRepository.findAllById(compilationDto.events());
+        Set<Event> events = new HashSet<>();
+        if (compilationDto.events() != null && !compilationDto.events().isEmpty()) {
+            events = new HashSet<>(eventRepository.findAllById(compilationDto.events()));
         }
-        Compilation compilation = compilationRepository.save(compilationMapper.fromNewCompilationDto(compilationDto,
-                new HashSet<>(events)));
-        return compilationDtoEnhancer.getEnhancedCompilationDto(compilation, events);
+
+        Compilation compilation = compilationRepository.save(
+                compilationMapper.fromNewCompilationDto(compilationDto, events)
+        );
+
+        return compilationDtoEnhancer.getEnhancedCompilationDto(compilation, new ArrayList<>(events));
     }
 
     @Override
+    @Transactional
     public void deleteCompilation(long compilationId) {
-        if (!compilationRepository.existsById(compilationId))
-            throw new NotFoundException("Compilation with id = " + compilationId + " not found");
+        Compilation compilation = compilationRepository.findById(compilationId)
+                .orElseThrow(() -> new NotFoundException("Compilation with id = " + compilationId + " not found"));
+
+        if (!compilation.getEvents().isEmpty()) {
+            throw new ConflictException("Cannot delete compilation with id = " + compilationId +
+                    " because it contains events. Remove events first.");
+        }
+
         compilationRepository.deleteById(compilationId);
     }
 
     @Override
     @Transactional
     public CompilationDto updateCompilation(UpdateCompilationRequest request, long compId) {
-        Compilation compilation = compilationRepository.findById(compId)
+        Compilation compilation = compilationRepository.findByIdWithEvents(compId)
                 .orElseThrow(() -> new NotFoundException("Compilation with id = " + compId + " not found"));
-        List<Event> events = new ArrayList<>();
+
+        Set<Event> events = new HashSet<>();
         if (request.events() != null) {
-            events = eventRepository.findAllById(request.events());
+            events = new HashSet<>(eventRepository.findAllById(request.events()));
         }
-        if (events.isEmpty()) {
-            compilationMapper.updateCompilationFromRequest(compilation, request, null);
-            return compilationMapper.toCompilationDto(compilation, null);
-        }
-        compilationMapper.updateCompilationFromRequest(compilation, request, new HashSet<>(events));
-        return compilationDtoEnhancer.getEnhancedCompilationDto(compilation, events);
+
+        compilationMapper.updateCompilationFromRequest(compilation, request, events);
+
+        Compilation updatedCompilation = compilationRepository.save(compilation);
+
+        return compilationDtoEnhancer.getEnhancedCompilationDto(
+                updatedCompilation,
+                new ArrayList<>(events.isEmpty() ? compilation.getEvents() : events)
+        );
     }
 }
