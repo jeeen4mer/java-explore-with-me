@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import ru.practicum.ewm_service.exception.ConflictException;
 import ru.practicum.ewm_service.exception.NotFoundException;
 import ru.practicum.ewm_service.user.User;
 import ru.practicum.ewm_service.user.UserMapper;
@@ -43,7 +44,7 @@ public class UserServiceImpl implements UserService {
         validateNewUserRequest(newUserRequest);
 
         if (repository.existsByEmail(newUserRequest.email())) {
-            throw new IllegalArgumentException("User with email " + newUserRequest.email() + " already exists");
+            throw new ConflictException("User with email " + newUserRequest.email() + " already exists");
         }
 
         User user = mapper.createUserDtoToUser(newUserRequest);
@@ -55,14 +56,14 @@ public class UserServiceImpl implements UserService {
     @Transactional
     public void delete(long userId) {
         if (userId <= 0) {
-            throw new IllegalArgumentException("User ID must be positive");
+            throw new ConflictException("User ID must be positive");
         }
 
         User user = repository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("User with id=" + userId + " was not found"));
 
         if (isAdminUser(user)) {
-            throw new IllegalArgumentException("Cannot delete administrator user with id=" + userId);
+            throw new ConflictException("Cannot delete administrator user with id=" + userId);
         }
 
         repository.delete(user);
@@ -74,24 +75,24 @@ public class UserServiceImpl implements UserService {
 
     private void validatePagination(int from, int size) {
         if (from < 0) {
-            throw new IllegalArgumentException("From parameter must be positive or zero");
+            throw new ConflictException("From parameter must be positive or zero");
         }
         if (size <= 0) {
-            throw new IllegalArgumentException("Size parameter must be positive");
+            throw new ConflictException("Size parameter must be positive");
         }
         if (size > 100) {
-            throw new IllegalArgumentException("Size parameter must not exceed 100");
+            throw new ConflictException("Size parameter must not exceed 100");
         }
     }
 
     private void validateUserIds(List<Long> ids) {
         if (ids != null) {
             if (ids.size() > 100) {
-                throw new IllegalArgumentException("Cannot request more than 100 users at once");
+                throw new ConflictException("Cannot request more than 100 users at once");
             }
             for (Long id : ids) {
-                if (id != null && id <= 0) {
-                    throw new IllegalArgumentException("User ID must be positive");
+                if (id <= 0) {
+                    throw new ConflictException("User ID must be positive");
                 }
             }
         }
@@ -99,22 +100,22 @@ public class UserServiceImpl implements UserService {
 
     private void validateNewUserRequest(NewUserRequest request) {
         if (request == null) {
-            throw new IllegalArgumentException("User request cannot be null");
+            throw new ConflictException("User request cannot be null");
         }
         if (request.email() == null || request.email().trim().isEmpty()) {
-            throw new IllegalArgumentException("Email cannot be empty");
+            throw new ConflictException("Email cannot be empty");
         }
         if (request.name() == null || request.name().trim().isEmpty()) {
-            throw new IllegalArgumentException("Name cannot be empty");
+            throw new ConflictException("Name cannot be empty");
         }
         if (request.email().length() > 254) {
-            throw new IllegalArgumentException("Email cannot exceed 254 characters");
+            throw new ConflictException("Email cannot exceed 254 characters");
         }
         if (request.name().length() > 250) {
-            throw new IllegalArgumentException("Name cannot exceed 250 characters");
+            throw new ConflictException("Name cannot exceed 250 characters");
         }
         if (!request.email().matches("^[A-Za-z0-9+_.-]+@(.+)$")) {
-            throw new IllegalArgumentException("Invalid email format");
+            throw new ConflictException("Invalid email format");
         }
     }
 
@@ -126,7 +127,7 @@ public class UserServiceImpl implements UserService {
     @Transactional(readOnly = true)
     public UserDto findById(long userId) {
         if (userId <= 0) {
-            throw new IllegalArgumentException("User ID must be positive");
+            throw new ConflictException("User ID must be positive");
         }
 
         User user = repository.findById(userId)
