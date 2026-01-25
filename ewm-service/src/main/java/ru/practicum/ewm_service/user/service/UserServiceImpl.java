@@ -55,8 +55,6 @@ public class UserServiceImpl implements UserService {
     public UserDto create(NewUserRequest newUserRequest) {
         log.debug("Создание пользователя: email={}", newUserRequest.email());
 
-        validateNewUserRequest(newUserRequest);
-
         if (repository.existsByEmail(newUserRequest.email())) {
             log.warn("Попытка создать пользователя с существующим email: {}", newUserRequest.email());
             throw new ConflictException("User with email " + newUserRequest.email() + " already exists");
@@ -111,21 +109,6 @@ public class UserServiceImpl implements UserService {
                     throw new IllegalArgumentException("User ID must be positive");
                 }
             }
-        }
-    }
-
-    private void validateNewUserRequest(NewUserRequest request) {
-        if (request == null) {
-            throw new IllegalArgumentException("User request cannot be null");
-        }
-        if (request.email() == null || request.email().trim().isEmpty()) {
-            throw new IllegalArgumentException("Email cannot be empty");
-        }
-        if (request.name() == null || request.name().trim().isEmpty()) {
-            throw new IllegalArgumentException("Name cannot be empty");
-        }
-        if (!request.email().contains("@")) {
-            throw new IllegalArgumentException("Invalid email format");
         }
     }
 
