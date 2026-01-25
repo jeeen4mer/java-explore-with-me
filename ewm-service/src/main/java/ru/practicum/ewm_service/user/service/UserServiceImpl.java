@@ -1,7 +1,9 @@
 package ru.practicum.ewm_service.user.service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.ewm_service.exception.ConflictException;
@@ -17,6 +19,7 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
+@Slf4j
 public class UserServiceImpl implements UserService {
 
     private final UserRepository repository;
@@ -25,74 +28,87 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional(readOnly = true)
     public List<UserDto> findUsers(List<Long> ids, int from, int size) {
+        log.debug("Поиск пользователей: ids={}, from={}, size={}", ids, from, size);
+
         validatePagination(from, size);
 
-        validateUserIds(ids);
+        int page = from / size;
+        Pageable pageable = PageRequest.of(page, size);
 
         if (ids == null || ids.isEmpty()) {
-            ids = null;
-        }
+            log.debug("Поиск ВСЕХ пользователей, страница {}", page);
+            return repository.findAll(pageable).stream()
+                    .map(mapper::userToDto)
+                    .toList();
+        } else {
+            validateUserIds(ids);
+            log.debug("Поиск пользователей по IDs: {}", ids);
 
-        return repository.findAllById(ids, PageRequest.of(from / size, size)).stream()
-                .map(mapper::userToDto)
-                .toList();
+            return repository.findAllById(ids, pageable).stream()
+                    .map(mapper::userToDto)
+                    .toList();
+        }
     }
 
     @Override
     @Transactional
     public UserDto create(NewUserRequest newUserRequest) {
+        log.debug("Создание пользователя: email={}", newUserRequest.email());
+
         validateNewUserRequest(newUserRequest);
 
         if (repository.existsByEmail(newUserRequest.email())) {
+            log.warn("Попытка создать пользователя с существующим email: {}", newUserRequest.email());
             throw new ConflictException("User with email " + newUserRequest.email() + " already exists");
         }
 
         User user = mapper.createUserDtoToUser(newUserRequest);
         user = repository.save(user);
+        log.info("Создан пользователь с ID: {}", user.getId());
+
         return mapper.userToDto(user);
     }
 
     @Override
     @Transactional
     public void delete(long userId) {
+        log.debug("Удаление пользователя с ID: {}", userId);
+
         if (userId <= 0) {
-            throw new ConflictException("User ID must be positive");
+            throw new IllegalArgumentException("User ID must be positive");
         }
 
         User user = repository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("User with id=" + userId + " was not found"));
 
         if (isAdminUser(user)) {
-            throw new ConflictException("Cannot delete administrator user with id=" + userId);
+            throw new IllegalArgumentException("Cannot delete administrator user with id=" + userId);
         }
 
         repository.delete(user);
-
-        if (repository.existsById(userId)) {
-            throw new IllegalStateException("Failed to delete user with id=" + userId);
-        }
+        log.info("Пользователь с ID {} удален", userId);
     }
 
     private void validatePagination(int from, int size) {
         if (from < 0) {
-            throw new ConflictException("From parameter must be positive or zero");
+            throw new IllegalArgumentException("From parameter must be positive or zero");
         }
         if (size <= 0) {
-            throw new ConflictException("Size parameter must be positive");
+            throw new IllegalArgumentException("Size parameter must be positive");
         }
         if (size > 100) {
-            throw new ConflictException("Size parameter must not exceed 100");
+            throw new IllegalArgumentException("Size parameter must not exceed 100");
         }
     }
 
     private void validateUserIds(List<Long> ids) {
-        if (ids != null) {
+        if (ids != null && !ids.isEmpty()) {
             if (ids.size() > 100) {
-                throw new ConflictException("Cannot request more than 100 users at once");
+                throw new IllegalArgumentException("Cannot request more than 100 users at once");
             }
             for (Long id : ids) {
-                if (id <= 0) {
-                    throw new ConflictException("User ID must be positive");
+                if (id == null || id <= 0) {
+                    throw new IllegalArgumentException("User ID must be positive");
                 }
             }
         }
@@ -100,22 +116,16 @@ public class UserServiceImpl implements UserService {
 
     private void validateNewUserRequest(NewUserRequest request) {
         if (request == null) {
-            throw new ConflictException("User request cannot be null");
+            throw new IllegalArgumentException("User request cannot be null");
         }
         if (request.email() == null || request.email().trim().isEmpty()) {
-            throw new ConflictException("Email cannot be empty");
+            throw new IllegalArgumentException("Email cannot be empty");
         }
         if (request.name() == null || request.name().trim().isEmpty()) {
-            throw new ConflictException("Name cannot be empty");
+            throw new IllegalArgumentException("Name cannot be empty");
         }
-        if (request.email().length() > 254) {
-            throw new ConflictException("Email cannot exceed 254 characters");
-        }
-        if (request.name().length() > 250) {
-            throw new ConflictException("Name cannot exceed 250 characters");
-        }
-        if (!request.email().matches("^[A-Za-z0-9+_.-]+@(.+)$")) {
-            throw new ConflictException("Invalid email format");
+        if (!request.email().contains("@")) {
+            throw new IllegalArgumentException("Invalid email format");
         }
     }
 
@@ -123,11 +133,10 @@ public class UserServiceImpl implements UserService {
         return user.getEmail().endsWith("@admin.com") || "admin".equals(user.getName());
     }
 
-    @Override
     @Transactional(readOnly = true)
     public UserDto findById(long userId) {
         if (userId <= 0) {
-            throw new ConflictException("User ID must be positive");
+            throw new IllegalArgumentException("User ID must be positive");
         }
 
         User user = repository.findById(userId)
