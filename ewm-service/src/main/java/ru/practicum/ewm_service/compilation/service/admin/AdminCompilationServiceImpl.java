@@ -21,7 +21,7 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
-@Transactional
+@Transactional(readOnly = true)
 public class AdminCompilationServiceImpl implements AdminCompilationService {
 
     private final CompilationRepository compilationRepository;
@@ -30,6 +30,7 @@ public class AdminCompilationServiceImpl implements AdminCompilationService {
     private final CompilationDtoEnhancer compilationDtoEnhancer;
 
     @Override
+    @Transactional
     public CompilationDto addNewCompilation(NewCompilationDto compilationDto) {
         List<Event> events;
         if (compilationDto.events() == null) {
@@ -43,6 +44,7 @@ public class AdminCompilationServiceImpl implements AdminCompilationService {
     }
 
     @Override
+    @Transactional
     public void deleteCompilation(long compilationId) {
         Compilation compilation = compilationRepository.findById(compilationId)
                 .orElseThrow(() -> new NotFoundException("Compilation with id = " + compilationId + " not found"));
@@ -56,6 +58,7 @@ public class AdminCompilationServiceImpl implements AdminCompilationService {
     }
 
     @Override
+    @Transactional
     public CompilationDto updateCompilation(UpdateCompilationRequest request, long compId) {
         Compilation compilation = compilationRepository.findById(compId)
                 .orElseThrow(() -> new NotFoundException("Compilation with id = " + compId + " not found"));

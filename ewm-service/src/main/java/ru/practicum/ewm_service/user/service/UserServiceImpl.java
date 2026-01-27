@@ -15,13 +15,14 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
-@Transactional
+@Transactional(readOnly = true)
 public class UserServiceImpl implements UserService {
 
     private final UserRepository repository;
     private final UserMapper mapper;
 
     @Override
+    @Transactional
     public List<UserDto> findUsers(List<Long> ids, int from, int size) {
         if (ids == null || ids.isEmpty()) ids = null;
         return repository.findAllById(ids, PageRequest.of(from / size, size)).stream()
@@ -30,6 +31,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Transactional
     public UserDto create(NewUserRequest newUserRequest) {
         User user = mapper.createUserDtoToUser(newUserRequest);
         user = repository.save(user);
@@ -37,6 +39,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Transactional
     public void delete(long userId) {
         if (!repository.existsById(userId)) {
             throw new NotFoundException("User with id=" + userId + " was not found");
