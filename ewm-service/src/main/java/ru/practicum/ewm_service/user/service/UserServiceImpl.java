@@ -26,23 +26,23 @@ public class UserServiceImpl implements UserService {
     public List<UserDto> findUsers(List<Long> ids, int from, int size) {
         if (ids == null || ids.isEmpty()) ids = null;
         return repository.findAllById(ids, PageRequest.of(from / size, size)).stream()
-                .map(mapper::userToDto)
+                .map(mapper::toUserDto)
                 .toList();
     }
 
     @Override
     @Transactional
     public UserDto create(NewUserRequest newUserRequest) {
-        User user = mapper.createUserDtoToUser(newUserRequest);
+        User user = mapper.fromNewUserDto(newUserRequest);
         user = repository.save(user);
-        return mapper.userToDto(user);
+        return mapper.toUserDto(user);
     }
 
     @Override
     @Transactional
     public void delete(long userId) {
         if (!repository.existsById(userId)) {
-            throw new NotFoundException("User with id=" + userId + " was not found");
+            throw new NotFoundException("Пользователь с id = " + userId + " не найден");
         }
         repository.deleteById(userId);
     }
