@@ -35,9 +35,18 @@ public class SubscriptionController {
     }
 
     @GetMapping("/followers")
-    public List<UserShortDto> getFollowers(@PathVariable long userId,
-                                           @RequestParam(defaultValue = "0") int from,
-                                           @RequestParam(defaultValue = "10") int size) {
+    public List<UserShortDto> getFollowers(
+            @PathVariable long userId,
+            @RequestParam(defaultValue = "0") int from,
+            @RequestParam(defaultValue = "10") int size) {
+
+        if (from < 0) {
+            throw new IllegalArgumentException("Параметр 'from' должен быть >= 0");
+        }
+        if (size <= 0 || size > 1000) {
+            throw new IllegalArgumentException("Параметр 'size' должен быть в диапазоне от 1 до 1000");
+        }
+
         return service.getFollowers(userId, from, size);
     }
 
@@ -48,17 +57,26 @@ public class SubscriptionController {
     }
 
     @GetMapping
-    public List<EventShortDto> getSubsEvents(@RequestParam(required = false) String text,
-                                             @RequestParam(required = false) List<Long> categories,
-                                             @RequestParam(required = false) Boolean paid,
-                                             @RequestParam(required = false) LocalDateTime rangeStart,
-                                             @RequestParam(required = false) LocalDateTime rangeEnd,
-                                             @RequestParam(required = false) boolean onlyAvailable,
-                                             @RequestParam(required = false) EventSortType sort,
-                                             @RequestParam(defaultValue = "0") int from,
-                                             @RequestParam(defaultValue = "10") int size,
-                                             @PathVariable long userId,
-                                             HttpServletRequest request) {
+    public List<EventShortDto> getSubsEvents(
+            @RequestParam(required = false) String text,
+            @RequestParam(required = false) List<Long> categories,
+            @RequestParam(required = false) Boolean paid,
+            @RequestParam(required = false) LocalDateTime rangeStart,
+            @RequestParam(required = false) LocalDateTime rangeEnd,
+            @RequestParam(required = false) boolean onlyAvailable,
+            @RequestParam(required = false) EventSortType sort,
+            @RequestParam(defaultValue = "0") int from,
+            @RequestParam(defaultValue = "10") int size,
+            @PathVariable long userId,
+            HttpServletRequest request) {
+
+        if (from < 0) {
+            throw new IllegalArgumentException("Параметр 'from' должен быть >= 0");
+        }
+        if (size <= 0 || size > 1000) {
+            throw new IllegalArgumentException("Параметр 'size' должен быть в диапазоне от 1 до 1000");
+        }
+
         return service.getSubsEvents(text, categories, paid, rangeStart, rangeEnd, onlyAvailable, sort, from, size,
                 request.getRemoteAddr(), userId);
     }

@@ -61,6 +61,7 @@ public class SubscriptionServiceImpl implements SubscriptionService {
     }
 
     @Override
+    @Transactional
     public void cancelSubscription(long followerId, long contentMakerId) {
         Subscription subscription = subscriptionRepository.findById(new SubscriptionId(contentMakerId, followerId))
                 .orElseThrow(() -> new NotFoundException("Подписка на пользователя с id = " + contentMakerId + " не найдена"));
@@ -68,6 +69,7 @@ public class SubscriptionServiceImpl implements SubscriptionService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<UserShortDto> getFollowers(long userId, int from, int size) {
         validateUserExists(userId);
         List<User> followers = subscriptionRepository.findFollowersByContentMakerId(
@@ -89,6 +91,7 @@ public class SubscriptionServiceImpl implements SubscriptionService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<EventShortDto> getSubsEvents(String text, List<Long> categories, Boolean paid, LocalDateTime rangeStart,
                                              LocalDateTime rangeEnd, boolean onlyAvailable, EventSortType sort,
                                              int from, int size, String ip, long userId) {
