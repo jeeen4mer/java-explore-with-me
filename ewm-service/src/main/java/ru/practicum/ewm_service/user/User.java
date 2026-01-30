@@ -12,12 +12,15 @@ import lombok.Setter;
 public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    Long id;
+    private Long id;
 
     @Column
     @Email
-    String email;
+    private String email;
 
     @Column
-    String name;
+    private String name;
+
+    @Column(name = "follows_prohibited")
+    private boolean followsProhibited;
 }

@@ -4,13 +4,15 @@ import org.mapstruct.Mapper;
 import org.mapstruct.NullValuePropertyMappingStrategy;
 import ru.practicum.ewm_service.user.dto.NewUserRequest;
 import ru.practicum.ewm_service.user.dto.UserDto;
+import ru.practicum.ewm_service.user.dto.UserShortDto;
 
 @Mapper(componentModel = "spring",
         nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
 public interface UserMapper {
 
-    User createUserDtoToUser(NewUserRequest dto);
+    User fromNewUserDto(NewUserRequest dto);
 
-    UserDto userToDto(User user);
+    UserDto toUserDto(User user);
 
+    UserShortDto toUserShortDto(User user);
 }

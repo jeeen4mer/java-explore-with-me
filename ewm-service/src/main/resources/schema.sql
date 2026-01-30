@@ -1,7 +1,8 @@
 CREATE TABLE IF NOT EXISTS users (
     id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
-    email VARCHAR(255) NOT NULL UNIQUE
+    email VARCHAR(255) NOT NULL UNIQUE,
+    follows_prohibited BOOLEAN
 );
 
 CREATE TABLE IF NOT EXISTS categories (
@@ -45,4 +46,11 @@ CREATE TABLE IF NOT EXISTS compilation_events (
     compilation_id BIGINT NOT NULL REFERENCES compilations(id),
     event_id BIGINT NOT NULL REFERENCES events(id),
     PRIMARY KEY (compilation_id, event_id)
+);
+
+CREATE TABLE IF NOT EXISTS subscriptions (
+    content_maker_id BIGINT NOT NULL REFERENCES users(id),
+    follower_id BIGINT NOT NULL REFERENCES users(id),
+    created_on TIMESTAMP,
+    PRIMARY KEY (content_maker_id, follower_id)
 );
